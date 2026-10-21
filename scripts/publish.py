@@ -1,6 +1,7 @@
 """Validate both exports before packaging a new Pages deployment."""
 import base64
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -19,12 +20,19 @@ def prepare(staging: Path, output: Path, mihomo: str):
         raise ValueError('Empty or mismatched subscriptions; previous deployment is preserved')
     if any(n.get('latency_ms') is None or n.get('error') for n in report['nodes']):
         raise ValueError('Unverified nodes; refusing deployment')
+    if os.environ.get('STRICT_HTTPS_VERIFICATION') == '1' and any(
+        not (n.get('https_verification') or {}).get('chatgpt_homepage')
+        or (n.get('https_verification') or {}).get('rounds', 0) < 3
+        for n in report['nodes']
+    ):
+        raise ValueError('Missing strict HTTPS verification; refusing deployment')
     subprocess.run([mihomo, '-t', '-d', str(staging.resolve()), '-f', str((staging / 'clash.yaml').resolve())], check=True, capture_output=True)
     output.mkdir(parents=True, exist_ok=True)
     shutil.copy(staging / 'clash.yaml', output / 'clash.yaml')
     shutil.copy(staging / 'v2ray.txt', output / 'shadowrocket.txt')
     # Public status deliberately excludes credentials, upstream URLs and raw error text.
     status = {k: report[k] for k in ('generated_at', 'node_count')}
+    status['verification'] = 'Three spaced HTTPS checks including ChatGPT homepage; signed-in conversation not tested' if all(n.get('https_verification') for n in report['nodes']) else 'Cloud latency only'
     status.update({'test_environment': 'GitHub Actions cloud runner', 'speed_tested': False,
                    'failed_sources': len(report.get('source_errors', [])),
                    'nodes': [{'name': n['name'], 'protocol': n.get('type', ''), 'latency_ms': n['latency_ms']} for n in report['nodes']]})

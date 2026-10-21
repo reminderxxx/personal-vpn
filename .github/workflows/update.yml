@@ -2,7 +2,7 @@ name: Daily subscription update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 1 * * *'
+    - cron: '15 1,7,13,19 * * *'
   push:
     branches: [main]
 permissions:
@@ -29,7 +29,9 @@ jobs:
       - name: Collect and test nodes
         env:
           MAX_NODES: '1200'
-          MAX_OUTPUT_NODES: '120'
+          MAX_OUTPUT_NODES: '30'
+          STRICT_HTTPS_VERIFICATION: '1'
+          STRICT_CANDIDATES: '120'
           SOURCE_TIMEOUT_SECONDS: '20'
           SOURCE_RETRIES: '1'
           FETCH_WORKERS: '4'
@@ -44,6 +46,8 @@ jobs:
           GEOIP_WORKERS: '16'
         run: python -m subbench run --mihomo .bin/mihomo --output .staging --workdir .work
       - name: Validate nonempty subscriptions and build site
+        env:
+          STRICT_HTTPS_VERIFICATION: '1'
         run: python scripts/publish.py .staging public .bin/mihomo
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

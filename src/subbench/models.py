@@ -47,4 +47,5 @@ class Node:
             "latency_ms": self.latency_ms,
             "speed_mbps": self.speed_mbps,
             "error": self.error,
+            "https_verification": self.metadata.get('https_verification'),
         }

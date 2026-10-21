@@ -9,6 +9,7 @@ from .benchmark import MihomoBenchmark, write_mihomo_config
 from .countries import country_name_zh
 from .models import Node
 from .selection import diverse_nodes
+from .verification import verify
 from .output import prepare_names, write_outputs
 from .parsers import parse_document
 from .prefilter import aliyun_tcp_prefilter, normalize_aliyun_url, tcp_prefilter
@@ -164,6 +165,12 @@ def run(args: argparse.Namespace) -> int:
             ) as benchmark:
                 write_mihomo_config(workdir / "mihomo-nodes.yaml", nodes)
                 nodes = benchmark.benchmark(nodes)
+                if _bool_env('STRICT_HTTPS_VERIFICATION', False):
+                    nodes = _filter_benchmarked_nodes(nodes, _int_env('MAX_LATENCY_MS', 3000), 0, require_speed=False)
+                    nodes.sort(key=lambda node: node.latency_ms or 10**9)
+                    candidates = diverse_nodes(nodes, _int_env('STRICT_CANDIDATES', 120), per_server=1)
+                    nodes = verify(candidates, benchmark.node_proxy_ports,
+                                   rounds=3, interval=20, workers=12)
 
     max_latency = _int_env("MAX_LATENCY_MS", 3000)
     min_speed = _float_env("MIN_SPEED_MBPS", 0.1)
