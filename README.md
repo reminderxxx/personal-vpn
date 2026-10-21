@@ -30,7 +30,7 @@ ALIYUN_FC_ENABLED=0 MAX_NODES=300 MAX_OUTPUT_NODES=40 subbench run --output .sta
 python scripts/publish.py .staging public .bin/mihomo
 ```
 
-来源维护在 config/sources.txt。默认最多检测 300 个候选，发布最快的 40 个；来源排序会影响候选覆盖范围。两种格式只收录同时可导出的节点。云端任务最多 25 分钟；任一步骤失败都不会进入部署。
+来源维护在 config/sources.txt。默认最多检测 1,200 个候选，按来源和协议轮流取样；要求连续两次检测通过，最多发布 120 个，按来源、协议、地区分散选择，同一服务器最多保留两组参数。两种格式只收录同时可导出的节点。云端任务最多 25 分钟；任一步骤失败都不会进入部署。
 
 客户端 MATCH 规则默认将流量交给 PROXY；可在客户端选择 DIRECT，或自行配置分流。小火箭订阅仅同步节点，不同步 Clash 策略。
 

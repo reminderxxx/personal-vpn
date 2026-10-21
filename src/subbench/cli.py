@@ -8,6 +8,7 @@ from pathlib import Path
 from .benchmark import MihomoBenchmark, write_mihomo_config
 from .countries import country_name_zh
 from .models import Node
+from .selection import diverse_nodes
 from .output import prepare_names, write_outputs
 from .parsers import parse_document
 from .prefilter import aliyun_tcp_prefilter, normalize_aliyun_url, tcp_prefilter
@@ -112,7 +113,7 @@ def run(args: argparse.Namespace) -> int:
     nodes = [node for node in unique.values() if node.uri and node.clash]
     max_nodes = _int_env("MAX_NODES", 0)
     if max_nodes > 0:
-        nodes = nodes[:max_nodes]
+        nodes = diverse_nodes(nodes, max_nodes, per_server=4)
     if not nodes:
         raise RuntimeError("Sources were fetched, but no supported nodes were found.")
     for node in nodes:
@@ -203,7 +204,7 @@ def run(args: argparse.Namespace) -> int:
     )
     max_output_nodes = _int_env("MAX_OUTPUT_NODES", 0)
     if max_output_nodes > 0:
-        nodes = nodes[:max_output_nodes]
+        nodes = diverse_nodes(nodes, max_output_nodes, per_server=2)
     if benchmark_performed:
         _rename_nodes_by_country(nodes)
     if not nodes:

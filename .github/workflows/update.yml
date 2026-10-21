@@ -28,8 +28,8 @@ jobs:
         run: python scripts/install_mihomo.py --output .bin/mihomo
       - name: Collect and test nodes
         env:
-          MAX_NODES: '300'
-          MAX_OUTPUT_NODES: '40'
+          MAX_NODES: '1200'
+          MAX_OUTPUT_NODES: '120'
           SOURCE_TIMEOUT_SECONDS: '20'
           SOURCE_RETRIES: '1'
           FETCH_WORKERS: '4'
@@ -37,10 +37,11 @@ jobs:
           TCP_PREFILTER_ENABLED: '0'
           LATENCY_TIMEOUT_MS: '8000'
           LATENCY_TEST_ATTEMPTS: '2'
+          LATENCY_REQUIRED_SUCCESSES: '2'
           MAX_LATENCY_MS: '3000'
           SPEED_TEST_ENABLED: '0'
-          BENCHMARK_WORKERS: '12'
-          GEOIP_WORKERS: '8'
+          BENCHMARK_WORKERS: '24'
+          GEOIP_WORKERS: '16'
         run: python -m subbench run --mihomo .bin/mihomo --output .staging --workdir .work
       - name: Validate nonempty subscriptions and build site
         run: python scripts/publish.py .staging public .bin/mihomo

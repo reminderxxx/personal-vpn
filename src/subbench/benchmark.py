@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -125,6 +126,8 @@ class MihomoBenchmark:
 
     def latency(self, node: Node) -> Node:
         last_error: Exception | None = None
+        successes = []
+        required = max(1, int(os.environ.get('LATENCY_REQUIRED_SUCCESSES', '1')))
         for _ in range(self.latency_attempts):
             try:
                 response = requests.get(
@@ -137,12 +140,13 @@ class MihomoBenchmark:
                     timeout=max(5, self.timeout_ms / 1000 + 5),
                 )
                 response.raise_for_status()
-                node.latency_ms = int(response.json()["delay"])
-                return node
+                successes.append(int(response.json()["delay"]))
+                if len(successes) >= required:
+                    node.latency_ms = max(successes)
+                    return node
             except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
                 last_error = exc
-        if last_error:
-            node.error = f"latency: {last_error}"
+        node.error = f"latency: only {len(successes)}/{required} successful checks; {last_error or 'insufficient attempts'}"
         return node
 
     def benchmark_latency(self, nodes: list[Node]) -> list[Node]:
