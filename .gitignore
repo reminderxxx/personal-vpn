@@ -1,0 +1,7 @@
+.bin/
+.work/
+.staging/
+public/
+__pycache__/
+*.egg-info/
+.venv/

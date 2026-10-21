@@ -1,0 +1,65 @@
+name: Daily subscription update
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 1 * * *'
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: subscription-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install .
+      - name: Run regression checks
+        run: python -m unittest discover -s tests
+      - name: Install official Mihomo release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/install_mihomo.py --output .bin/mihomo
+      - name: Collect and test nodes
+        env:
+          MAX_NODES: '300'
+          MAX_OUTPUT_NODES: '40'
+          SOURCE_TIMEOUT_SECONDS: '20'
+          SOURCE_RETRIES: '1'
+          FETCH_WORKERS: '4'
+          ALIYUN_FC_ENABLED: '0'
+          TCP_PREFILTER_ENABLED: '0'
+          LATENCY_TIMEOUT_MS: '8000'
+          LATENCY_TEST_ATTEMPTS: '2'
+          MAX_LATENCY_MS: '3000'
+          SPEED_TEST_ENABLED: '0'
+          BENCHMARK_WORKERS: '12'
+          GEOIP_WORKERS: '8'
+        run: python -m subbench run --mihomo .bin/mihomo --output .staging --workdir .work
+      - name: Validate nonempty subscriptions and build site
+        run: python scripts/publish.py .staging public .bin/mihomo
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+          retention-days: 1
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish successful update
+        id: deployment
+        uses: actions/deploy-pages@v4
